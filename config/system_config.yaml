@@ -1,0 +1,84 @@
+# config/system_config.yaml
+modules:
+  data_collection:
+    - path: modules.data_collection.ohlc_provider
+      class: YahooFinanceProvider
+      id: yahoo_finance
+      config:
+        symbols: ["AAPL", "MSFT", "GOOGL"]
+        timeframe: "1d"
+        lookback_days: 90
+
+  level_identification:
+    - path: modules.level_identification.sr_detector
+      class: SupportResistanceDetector
+      id: sr_detector
+      config:
+        window_size: 10
+        threshold: 0.03
+        min_strength: 0.6
+        max_levels: 8
+
+  signal_generation:
+    - path: modules.signal_generation.breakout_signal
+      class: BreakoutSignalGenerator
+      id: breakout_signal
+      config:
+        min_level_strength: 0.7
+        confirmation_candles: 1
+        signal_expiry_minutes: 120
+      dependencies:
+        price_data:
+          type: data_collection
+          id: yahoo_finance
+        level_data:
+          type: level_identification
+          id: sr_detector
+
+  risk_management:
+    - path: modules.risk_management.position_sizing
+      class: RiskManager
+      id: risk_manager
+      config:
+        account_size: 10000
+        risk_per_trade: 0.01
+        max_position_size: 0.1
+        stop_multiplier: 1.5
+        target_rr_ratio: 2.0
+
+  execution:
+    - path: modules.execution.order_executor
+      class: OrderExecutor
+      id: order_executor
+      config:
+        broker: null
+        simulate: true
+        slippage_factor: 0.0005
+      dependencies:
+        risk_manager:
+          type: risk_management
+          id: risk_manager
+
+  monitoring:
+    - path: modules.monitoring.performance_monitor
+      class: PerformanceMonitor
+      id: performance_monitor
+      config:
+        initial_capital: 10000
+        update_interval: 60
+      dependencies:
+        executor:
+          type: execution
+          id: order_executor
+
+  reporting:
+    - path: modules.reporting.performance_reporter
+      class: PerformanceReporter
+      id: performance_reporter
+      config:
+        report_format: html
+        save_path: reports/
+      dependencies:
+        monitor:
+          type: monitoring
+          id: performance_monitor
