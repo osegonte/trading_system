@@ -294,6 +294,23 @@ def process_trading_pipeline(controller, price_data_by_symbol):
                     # Update monitors
                     for monitor in monitors:
                         monitor.execute({"orders": [order]})
+def run_gui_mode(controller):
+    """Run the system with GUI interface."""
+    logger = logging.getLogger("gui_mode")
+    logger.info("Starting GUI mode")
+    
+    # Start the controller
+    controller.start()
+    
+    # Create and run GUI
+    root = tk.Tk()
+    app = TradingBotGUI(root, controller)
+    root.protocol("WM_DELETE_WINDOW", app.on_close)
+    root.mainloop()
+    
+    logger.info("GUI mode stopped")
+
+
 
 if __name__ == "__main__":
     main()
