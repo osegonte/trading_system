@@ -1,3 +1,4 @@
+# modules/ai/portfolio_agent.py
 import openai
 from typing import Any, Dict, Optional, List
 import json
@@ -5,12 +6,14 @@ import json
 from core.interfaces import IModule
 
 class AIPortfolioAgent(IModule):
-    """AI-powered portfolio analysis agent using OpenAI."""
+    """AI-powered portfolio analysis agent using DeepSeek."""
     
     def __init__(self, module_id: Optional[str] = "ai_portfolio_agent"):
         super().__init__(module_id=module_id)
         self.api_key = ""
-        self.model = "gpt-4"
+        self.model = "deepseek-chat"
+        self.base_url = "https://api.deepseek.com"
+        self.client = None
         self.system_prompt = """
         You are an expert portfolio manager and risk analyst. Your tasks:
         1) Evaluate portfolio risk and exposure
@@ -25,15 +28,22 @@ class AIPortfolioAgent(IModule):
     def configure(self, config: Dict[str, Any]) -> None:
         """Configure the AI agent."""
         self.api_key = config.get("api_key", "")
-        self.model = config.get("model", "gpt-4")
+        self.model = config.get("model", "deepseek-chat")
+        self.base_url = config.get("base_url", "https://api.deepseek.com")
         
         if self.api_key:
-            openai.api_key = self.api_key
+            self.client = openai.OpenAI(
+                api_key=self.api_key,
+                base_url=self.base_url
+            )
         
         super().configure(config)
     
     def execute(self, input_data: Dict[str, Any]) -> str:
         """Analyze portfolio and provide AI insights."""
+        if not self.client:
+            return "AI agent not configured - missing API key"
+            
         user_message = input_data.get("message", "")
         portfolio = input_data.get("portfolio", [])
         orders = input_data.get("orders", [])
@@ -52,7 +62,7 @@ class AIPortfolioAgent(IModule):
         """
         
         try:
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": self.system_prompt},
@@ -62,7 +72,7 @@ class AIPortfolioAgent(IModule):
                 temperature=0.7
             )
             
-            return response['choices'][0]['message']['content']
+            return response.choices[0].message.content
         
         except Exception as e:
             return f"Error getting AI analysis: {e}"

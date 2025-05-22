@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import io
 import base64
-
+from typing import Any, Dict, Optional, List
 from core.interfaces import IModule
 from core.models import PerformanceMetrics, TradeData
 

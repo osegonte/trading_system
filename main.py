@@ -5,7 +5,9 @@ import logging
 from datetime import datetime, timedelta
 import time
 import yaml
-
+import tkinter as tk
+from ui.trading_gui import TradingBotGUI
+from utils.logging import setup_logging
 from core.controller import TradingSystemController
 from core.models import PriceData, SignalType
 
