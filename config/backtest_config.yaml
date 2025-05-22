@@ -1,1 +1,33 @@
+modules:
+  data_collection:
+    - path: modules.data_collection.ohlc_provider
+      class: YahooFinanceProvider
+      id: yahoo_finance
+      config:
+        symbols: ["AAPL", "MSFT", "GOOGL"]
+        timeframe: "1d"
+        lookback_days: 365
 
+  backtesting:
+    - path: modules.backtesting.strategy_backtester
+      class: StrategyBacktester
+      id: strategy_backtester
+      config:
+        initial_capital: 10000
+        commission: 0.005
+        slippage: 0.001
+
+  strategies:
+    - path: modules.strategies.martingale_dca
+      class: MartingaleDCAStrategy
+      id: martingale_dca
+      config:
+        equities_file: "data/equities.json"
+
+  reporting:
+    - path: modules.reporting.performance_reporter
+      class: PerformanceReporter
+      id: performance_reporter
+      config:
+        report_format: html
+        save_path: reports/backtest/

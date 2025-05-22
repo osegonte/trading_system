@@ -9,34 +9,19 @@ import yaml
 from core.controller import TradingSystemController
 from core.models import PriceData, SignalType
 
-def setup_logging():
-    """Set up logging configuration."""
-    log_dir = "logs"
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-    
-    log_file = os.path.join(log_dir, f"trading_system_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
-    
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(log_file),
-            logging.StreamHandler()
-        ]
-    )
-    
+
 def main():
     """Main entry point for the trading system."""
     # Set up logging
-    setup_logging()
-    logger = logging.getLogger("main")
+    logger = setup_logging()
     
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Modular Trading System")
     parser.add_argument("--config", type=str, default="config/system_config.yaml",
                        help="Path to system configuration file")
-    parser.add_argument("--mode", type=str, choices=["backtest", "paper", "live"], default="backtest",
+    parser.add_argument("--mode", type=str, 
+                       choices=["backtest", "paper", "live", "gui"], 
+                       default="gui",
                        help="Trading mode")
     parser.add_argument("--start_date", type=str, default=None,
                        help="Start date for backtest (YYYY-MM-DD)")
@@ -59,6 +44,8 @@ def main():
             run_paper_trading(controller)
         elif args.mode == "live":
             run_live_trading(controller)
+        elif args.mode == "gui":
+            run_gui_mode(controller)
         
     except Exception as e:
         logger.error(f"Error in trading system: {e}", exc_info=True)
@@ -66,6 +53,41 @@ def main():
         # Stop the system
         controller.stop()
         logger.info("Trading system stopped")
+
+def run_gui_mode(controller):
+    """Run the system with GUI interface."""
+    logger = logging.getLogger("gui_mode")
+    logger.info("Starting GUI mode")
+    
+    # Start the controller
+    controller.start()
+    
+    # Create and run GUI
+    root = tk.Tk()
+    app = TradingBotGUI(root, controller)
+    root.protocol("WM_DELETE_WINDOW", app.on_close)
+    root.mainloop()
+    
+    logger.info("GUI mode stopped")
+
+
+def setup_logging():
+    """Set up logging configuration."""
+    log_dir = "logs"
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    
+    log_file = os.path.join(log_dir, f"trading_system_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler()
+        ]
+    )
+    
 
 def run_backtest(controller, start_date_str, end_date_str):
     """Run the system in backtest mode."""
@@ -294,23 +316,6 @@ def process_trading_pipeline(controller, price_data_by_symbol):
                     # Update monitors
                     for monitor in monitors:
                         monitor.execute({"orders": [order]})
-def run_gui_mode(controller):
-    """Run the system with GUI interface."""
-    logger = logging.getLogger("gui_mode")
-    logger.info("Starting GUI mode")
-    
-    # Start the controller
-    controller.start()
-    
-    # Create and run GUI
-    root = tk.Tk()
-    app = TradingBotGUI(root, controller)
-    root.protocol("WM_DELETE_WINDOW", app.on_close)
-    root.mainloop()
-    
-    logger.info("GUI mode stopped")
-
-
 
 if __name__ == "__main__":
     main()
