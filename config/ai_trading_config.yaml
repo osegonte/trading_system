@@ -91,5 +91,5 @@ modules:
       class: TelegramNotifier
       id: telegram_notifier
       config:
-        bot_token: "YOUR_TELEGRAM_BOT_TOKEN"
-        chat_id: "YOUR_CHAT_ID"
+        bot_token: "7817371175:AAEj3sTViuC8il4JqwEURentgyr2rq5ESCQ"
+        chat_id: "7817371175"
