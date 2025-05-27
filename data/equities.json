@@ -1,1 +1,28 @@
-{}
+{
+  "AMZN": {
+    "levels": 5,
+    "drawdown_pct": 5.0,
+    "asset_type": "stock",
+    "system_on": false,
+    "has_position": false,
+    "entry_price": 0.0,
+    "last_buy_price": 0.0,
+    "position_count": 0,
+    "created_at": "2025-05-27T15:51:27.982839",
+    "total_invested": 0.0,
+    "avg_cost_basis": 0.0
+  },
+  "EURUSD=X": {
+    "levels": 4,
+    "drawdown_pct": 2.0,
+    "asset_type": "forex",
+    "system_on": false,
+    "has_position": false,
+    "entry_price": 0.0,
+    "last_buy_price": 0.0,
+    "position_count": 0,
+    "created_at": "2025-05-27T16:50:19.204393",
+    "total_invested": 0.0,
+    "avg_cost_basis": 0.0
+  }
+}

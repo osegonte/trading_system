@@ -1,0 +1,208 @@
+system:
+  mode: "parent_child"
+  environment: "development"
+  log_level: "INFO"
+
+parent_controller:
+  enabled: true
+  learning_frequency: "1hour"
+  min_data_points: 50
+  performance_lookback_days: 30
+  strategy_recommender:
+    min_trades: 50
+    confidence_threshold: 0.7
+    market_regimes: ["bullish", "bearish", "sideways"]
+
+child_bots:
+  default_config:
+    report_interval_hours: 1
+    update_check_interval_minutes: 30
+    max_trades_per_day: 10
+  
+  # Define multiple child bots
+  child_001:
+    name: "Conservative Multi-Asset Bot"
+    asset_types: ["stock", "forex"]
+    strategies: ["martingale_dca", "cluster_momentum"]
+    risk_profile: "conservative"
+  
+  child_002:
+    name: "Aggressive Crypto Bot"
+    asset_types: ["crypto"]
+    strategies: ["martingale_dca", "garch_intraday_vrp"]
+    risk_profile: "aggressive"
+  
+  child_003:
+    name: "Balanced Portfolio Bot"
+    asset_types: ["stock", "crypto", "forex"]
+    strategies: ["cluster_momentum", "twitter_engagement"]
+    risk_profile: "moderate"
+
+strategies:
+  cluster_momentum:
+    enabled: true
+    lookback_years: 4
+    n_clusters: 4
+    min_permutation_pvalue: 0.01
+    rebalance_schedule: "monthly"
+    
+  twitter_engagement:
+    enabled: true
+    min_likes: 20
+    min_comments: 10
+    top_n_symbols: 5
+    position_size_pct: 0.01
+    rebalance_schedule: "monthly"
+    
+  garch_intraday_vrp:
+    enabled: true
+    rolling_window: 180
+    volatility_threshold: 1.5
+    position_size_pct: 0.001
+    max_trades_per_day: 1
+    
+  martingale_dca:
+    enabled: true
+    max_levels: 15
+    max_drawdown_pct: 25
+    position_size_scaling: 1.2
+
+feature_pipeline:
+  cluster_features:
+    schedule: "daily_19_00"
+    stock_universe_size: 100
+    feature_count: 18
+    
+  garch_forecasts:
+    schedule: "daily_18_10"
+    symbols: ["SPY", "QQQ", "BTC-USD", "AAPL", "TSLA"]
+    model_params:
+      p: 1
+      q: 3
+      
+  twitter_features:
+    schedule: "monthly_last_day"
+    symbols: ["AAPL", "MSFT", "GOOGL", "TSLA", "META"]
+    api_rate_limit: 100
+
+data_storage:
+  features_path: "data/features"
+  bronze_path: "data/bronze"
+  silver_path: "data/silver"
+  gold_path: "data/gold"
+  retention_days: 365
+
+modules:
+  ai:
+    - class: AIPortfolioAgent
+      id: ai_portfolio_agent
+      path: modules.ai.portfolio_agent
+      config:
+        api_key: ${DEEPSEEK_API_KEY}
+        base_url: https://api.deepseek.com
+        model: deepseek-chat
+        
+    - class: StrategyRecommender
+      id: strategy_recommender
+      path: modules.ai.strategy_recommender
+      config:
+        min_trades: 50
+        confidence_threshold: 0.7
+
+  parent:
+    - class: ParentController
+      id: parent_controller
+      path: core.parent.parent_controller
+      config:
+        learning_frequency: "1hour"
+        min_data_points: 50
+
+  data_collection:
+    - class: YahooFinanceProvider
+      id: yahoo_finance
+      path: modules.data_collection.ohlc_provider
+      config:
+        symbols: ["AAPL", "MSFT", "GOOGL", "BTC-USD", "EURUSD=X", "GC=F"]
+        timeframe: "1d"
+        lookback_days: 365
+
+  execution:
+    - class: AlpacaExecutor
+      id: alpaca_executor
+      path: modules.execution.alpaca_executor
+      config:
+        api_key: ${ALPACA_API_KEY}
+        secret_key: ${ALPACA_SECRET_KEY}
+        base_url: https://paper-api.alpaca.markets
+
+  strategies:
+    - class: MartingaleDCAStrategy
+      id: martingale_dca
+      path: modules.strategies.martingale_dca
+      config:
+        equities_file: "data/equities.json"
+        
+    - class: ClusterMomentumStrategy
+      id: cluster_momentum
+      path: modules.strategies.research.cluster_momentum
+      config:
+        lookback_years: 4
+        n_clusters: 4
+        
+    - class: TwitterEngagementStrategy
+      id: twitter_engagement
+      path: modules.strategies.research.twitter_engagement
+      config:
+        min_likes: 20
+        top_n_symbols: 5
+        
+    - class: GARCHIntradayVRPStrategy
+      id: garch_intraday_vrp
+      path: modules.strategies.research.garch_intraday_vrp
+      config:
+        rolling_window: 180
+        volatility_threshold: 1.5
+
+  risk_management:
+    - class: RiskManager
+      id: risk_manager
+      path: modules.risk_management.position_sizing
+      config:
+        account_size: 10000
+        risk_per_trade: 0.01
+        max_position_size: 0.1
+
+  monitoring:
+    - class: PerformanceMonitor
+      id: performance_monitor
+      path: modules.monitoring.performance_monitor
+      config:
+        initial_capital: 10000
+        update_interval: 60
+
+  alerts:
+    - class: TelegramNotifier
+      id: telegram_notifier
+      path: modules.alerts.telegram_notifier
+      config:
+        bot_token: ${TELEGRAM_BOT_TOKEN}
+        chat_id: ${TELEGRAM_CHAT_ID}
+
+scheduling:
+  enabled: true
+  jobs:
+    - id: garch_forecast
+      command: "python jobs/build_garch_forecasts.py"
+      schedule: "10 18 * * 1-5"  # 6:10 PM weekdays
+      
+    - id: cluster_features
+      command: "python jobs/build_cluster_features.py"
+      schedule: "0 19 * * 1-5"   # 7:00 PM weekdays
+      
+    - id: twitter_features
+      command: "python jobs/build_twitter_features.py"
+      schedule: "50 23 28-31 * *"  # 11:50 PM last day of month
+      
+    - id: parent_learning
+      command: "python -c 'from core.parent.parent_controller import ParentController; pc = ParentController(); pc.configure({}); pc.execute({\"command\": \"learn_and_optimize\"})'"
+      schedule: "30 */1 * * *"   # Every hour at 30 minutes

@@ -26,9 +26,9 @@ modules:
       - NVDA
       - BTC-USD
       - ETH-USD
-      - EURUSD=X
-      - GBPUSD=X
-      - GC=F
+      - GC=F      # Gold futures (supported)
+      - SI=F      # Silver futures (supported)
+      # Removed EURUSD=X, GBPUSD=X (not supported by Alpaca)
       timeframe: 1d
     id: yahoo_finance
     path: modules.data_collection.ohlc_provider

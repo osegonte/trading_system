@@ -20,7 +20,7 @@ class AlpacaExecutor(IModule):
         self._orders = []
         self.logger = logging.getLogger(f"AlpacaExecutor.{module_id}")
         self.supported_assets = {
-            'stocks': True,
+            'stock': True,
             'crypto': False,  # Requires Alpaca Crypto
             'forex': False   # Not supported by Alpaca
         }
@@ -301,7 +301,7 @@ class AlpacaExecutor(IModule):
             self.logger.error(f"Error canceling orders: {e}")
     
     def get_account_info(self) -> dict:
-        """Get account information."""
+        """Get account information with better error handling."""
         try:
             if self.api:
                 account = self.api.get_account()
@@ -309,13 +309,19 @@ class AlpacaExecutor(IModule):
                     'buying_power': float(account.buying_power),
                     'portfolio_value': float(account.portfolio_value),
                     'cash': float(account.cash),
-                    'day_trade_count': int(account.day_trade_count),
-                    'trading_blocked': account.trading_blocked
+                    'day_trade_count': getattr(account, 'day_trade_count', 0),  # Handle missing attribute
+                    'trading_blocked': getattr(account, 'trading_blocked', False)
                 }
         except Exception as e:
             self.logger.error(f"Error getting account info: {e}")
         
-        return {}
+        return {
+            'buying_power': 0.0,
+            'portfolio_value': 0.0,
+            'cash': 0.0,
+            'day_trade_count': 0,
+            'trading_blocked': False
+        }
     
     def get_supported_assets(self) -> Dict[str, bool]:
         """Get supported asset types."""
